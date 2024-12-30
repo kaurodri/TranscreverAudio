@@ -1,4 +1,6 @@
 import styled from 'styled-components';
+import { useState, useEffect } from 'react';
+import api from '../api/axiosInstance.js';
 
 const Main = styled.div`
     display: flex;
@@ -51,6 +53,12 @@ const InputArquivo = styled.input`
     margin-left: 1rem;
 `;
 
+const Loading = styled.div`
+    display: none;
+    color: #666;
+    margin: 10px 0;
+`;
+
 const AreaTexto = styled.div`
     margin-top: 1rem;
 
@@ -74,6 +82,16 @@ const TextoTranscrito = styled.textarea`
 `;
 
 export default function Section() {
+
+    const [dados, setDados] = useState([]);
+
+    useEffect(() => {
+        api.get('transcrito').then(res => {
+            const dados = res.data.date;
+            setDados(dados);
+        })
+    }, []);
+
     return (
         <Main>
             <div>
@@ -86,10 +104,13 @@ export default function Section() {
                             <br></br>
                             <button type="submit" id="submitButton">Transcrever</button>
                         </form>
+                        <Loading id="loading">
+                            Transcrevendo áudio... Por favor, aguarde...
+                        </Loading>
                         <AreaTexto>
                             <h3>Texto Transcrito:</h3>
                             <Linha></Linha>
-                            <TextoTranscrito id="transcribedText" rows="10" cols="50" readOnly></TextoTranscrito>
+                            <TextoTranscrito id="transcribedText" rows="10" cols="50" readOnly value={dados}></TextoTranscrito>
                         </AreaTexto>
                     </Itens>
                 </Box>
