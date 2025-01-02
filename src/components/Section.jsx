@@ -53,8 +53,8 @@ const InputArquivo = styled.input`
     margin-left: 1rem;
 `;
 
-const Loading = styled.div`
-    display: none;
+const Loading = styled.div.withConfig({ shouldForwardProp: (prop) => prop !== 'show' })`
+    display: ${props => (props.show ? 'block' : 'none')};
     color: #666;
     margin: 10px 0;
 `;
@@ -82,15 +82,55 @@ const TextoTranscrito = styled.textarea`
 `;
 
 export default function Section() {
+    
+    const [loading, setLoading] = useState(false);
 
-    const [dados, setDados] = useState([]);
+    async function Transcrever(event) {
+        event.preventDefault();
 
-    useEffect(() => {
-        api.get('transcrito').then(res => {
-            const dados = res.data.date;
-            setDados(dados);
-        })
-    }, []);
+        const audioFile = document.getElementById('audioFile').files[0];
+        if (!audioFile) {
+            alert('Por favor, selecione um arquivo de áudio.');
+            return;
+        }
+
+        const submitButton = document.getElementById('submitButton');
+        const loadingDiv = document.getElementById('loading');
+        const transcribedText = document.getElementById('transcribedText');
+
+        setLoading(true);
+        loadingDiv.textContent = 'Enviando arquivo e iniciando transcrição... Este processo pode levar alguns minutos.';
+        submitButton.disabled = true;
+        transcribedText.value = 'Processando...';
+
+        const formData = new FormData();
+        formData.append('audioFile', audioFile);
+
+        try {
+
+            const API_URL = api.defaults.baseURL;
+            const response = await fetch(`${API_URL}/transcrito`, {
+                method: 'POST',
+                body: formData
+            });
+
+            const result = await response.json();
+
+            transcribedText.value = result;
+
+        } catch (error) {
+            console.error(error);
+        } finally {
+            loadingDiv.style.display = 'none';
+            submitButton.disabled = false;
+        
+            //Forçar uma atualização visual.
+            transcribedText.style.display = 'none';
+            transcribedText.offsetHeight; //Forçar reflow.
+            transcribedText.style.display = 'block';
+        }
+
+    }
 
     return (
         <Main>
@@ -102,15 +142,13 @@ export default function Section() {
                             <label htmlFor="audioFile">Escolha um arquivo de áudio:</label>
                             <InputArquivo type="file" id="audioFile" name="audioFile" accept="audio/*" required></InputArquivo>
                             <br></br>
-                            <button type="submit" id="submitButton">Transcrever</button>
+                            <button type="submit" id="submitButton" onClick={Transcrever}>Transcrever</button>
                         </form>
-                        <Loading id="loading">
-                            Transcrevendo áudio... Por favor, aguarde...
-                        </Loading>
+                        <Loading id="loading" show={loading}></Loading>
                         <AreaTexto>
                             <h3>Texto Transcrito:</h3>
                             <Linha></Linha>
-                            <TextoTranscrito id="transcribedText" rows="10" cols="50" readOnly value={dados}></TextoTranscrito>
+                            <TextoTranscrito id="transcribedText" rows="10" cols="50" readOnly ></TextoTranscrito>
                         </AreaTexto>
                     </Itens>
                 </Box>
